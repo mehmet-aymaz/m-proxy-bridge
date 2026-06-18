@@ -454,12 +454,12 @@ class BridgeVpnService : VpnService() {
                 "servers": [
                   {
                     "tag": "dns-remote",
-                    "address": "8.8.8.8",
+                    "address": "tcp://8.8.8.8",
                     "detour": "bridge-out"
                   },
                   {
                     "tag": "dns-remote-fallback",
-                    "address": "1.1.1.1",
+                    "address": "tcp://1.1.1.1",
                     "detour": "bridge-out"
                   },
                   {
@@ -523,6 +523,10 @@ class BridgeVpnService : VpnService() {
                   {
                     "port": [53],
                     "action": "hijack-dns"
+                  },
+                  {
+                    "network": "udp",
+                    "outbound": "block-out"
                   },
                   {
                     "port": [853],
