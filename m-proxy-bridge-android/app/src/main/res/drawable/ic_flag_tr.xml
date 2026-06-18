@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Red Circle Background -->
+    <path
+        android:fillColor="#E30A17"
+        android:pathData="M12,12m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0" />
+
+    <!-- Crescent (Outer Circle - White) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M11,12m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+
+    <!-- Crescent Cutout (Inner Circle - Red) -->
+    <path
+        android:fillColor="#E30A17"
+        android:pathData="M12.3,12m-3.8,0a3.8,3.8 0,1 1,7.6 0a3.8,3.8 0,1 1,-7.6 0" />
+
+    <!-- Star (White) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16.8,10.2 L17.5,11.6 L19.0,11.8 L17.9,12.8 L18.2,14.3 L16.8,13.5 L15.4,14.3 L15.7,12.8 L14.6,11.8 L16.1,11.6 Z" />
+
+</vector>

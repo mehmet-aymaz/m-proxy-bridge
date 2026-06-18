@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Active logo ring: emerald green glowing circle - matches reference m-proxy VPN active state -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#1A10B981" />
+    <stroke
+        android:width="2dp"
+        android:color="#10B981" />
+    <size
+        android:width="130dp"
+        android:height="130dp" />
+</shape>

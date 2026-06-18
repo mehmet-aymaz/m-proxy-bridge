@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base background: deep dark blue-black -->
+    <color name="background">#060C18</color>
+    <color name="surface">#0B132B</color>
+    <color name="surface_border">#1E293B</color>
+
+    <!-- Primary: bright cyan accent -->
+    <color name="primary">#00E5FF</color>
+    <color name="primary_dark">#00B8D4</color>
+
+    <!-- Active state: neon green -->
+    <color name="accent_green">#00FF66</color>
+    <color name="accent_green_dark">#00D856</color>
+
+    <!-- Card value accent colors (match reference) -->
+    <color name="accent_blue">#00E5FF</color>
+    <color name="accent_purple">#A855F7</color>
+    <color name="accent_pink">#EC4899</color>
+    <color name="accent_yellow">#FBC531</color>
+    <color name="accent_grey">#3D5A72</color>
+
+    <color name="success">#00FF66</color>
+    <color name="error">#EF4444</color>
+
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_light_gray">#E2E8F0</color>
+    <color name="text_muted">#475569</color>
+
+    <!-- Inactive button: purple/indigo gradient -->
+    <color name="btn_inactive_start">#6366F1</color>
+    <color name="btn_inactive_end">#A855F7</color>
+</resources>
+

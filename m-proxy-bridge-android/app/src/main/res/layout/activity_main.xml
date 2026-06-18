@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#060C18">
+
+    <!-- Ambient Blobs -->
+    <View
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="-120dp"
+        android:layout_marginTop="-120dp"
+        android:background="@drawable/blob_cyan" />
+
+    <View
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="-120dp"
+        android:layout_marginBottom="-120dp"
+        android:background="@drawable/blob_pink" />
+
+    <View
+        android:id="@+id/blob_active"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:layout_gravity="center"
+        android:background="@drawable/blob_green"
+        android:visibility="gone" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true">
+
+        <!-- Top Header Capsule Card -->
+        <RelativeLayout
+            android:id="@+id/header_layout"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_alignParentTop="true"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/header_capsule_bg"
+            android:paddingLeft="12dp"
+            android:paddingRight="16dp">
+
+            <!-- Left: Language Option -->
+            <FrameLayout
+                android:id="@+id/lang_selector"
+                android:layout_width="@dimen/lang_selector_size"
+                android:layout_height="@dimen/lang_selector_size"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/lang_bg"
+                android:clipToOutline="true"
+                android:padding="6dp"
+                android:foreground="?attr/selectableItemBackground">
+
+                <ImageView
+                    android:id="@+id/lang_flag_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_flag_tr" />
+
+            </FrameLayout>
+
+            <!-- Center: App Name & Subtitle -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="M-PROXY"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BRIDGE"
+                    android:textColor="@color/primary"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2" />
+
+            </LinearLayout>
+
+            <!-- Right: Status Dot -->
+            <FrameLayout
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/dot_status_passive" />
+
+                <View
+                    android:id="@+id/header_status_dot"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/dot_status_active"
+                    android:alpha="0" />
+
+            </FrameLayout>
+
+        </RelativeLayout>
+
+        <!-- Main content: vertically centered between header and bottom section -->
+        <LinearLayout
+            android:id="@+id/main_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/header_layout"
+            android:layout_above="@id/bottom_section"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+
+            <!-- Uptime Card (Large rounded rectangle) -->
+            <LinearLayout
+                android:id="@+id/uptime_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/uptime_card_bg"
+                android:paddingTop="20dp"
+                android:paddingBottom="20dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/uptime_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AKTİF ÇALIŞMA SÜRESİ"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:id="@+id/uptime_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="00:00:00"
+                    android:textColor="@color/text_primary"
+                    android:textSize="36sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-thin" />
+
+                <!-- Real Ping Display -->
+                <TextView
+                    android:id="@+id/ping_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/ping_capsule_bg"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:text="⚡ 0 ms"
+                    android:textColor="@color/accent_green"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Concentric Logo Rings Panel -->
+            <FrameLayout
+                android:id="@+id/logo_ring_container"
+                android:layout_width="220dp"
+                android:layout_height="220dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <!-- Ring 3 (Outer) -->
+                <View
+                    android:id="@+id/logo_ring_3"
+                    android:layout_width="198dp"
+                    android:layout_height="198dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/circle_concentric_ring" />
+
+                <!-- Ring 2 (Middle) -->
+                <View
+                    android:id="@+id/logo_ring_2"
+                    android:layout_width="172dp"
+                    android:layout_height="172dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/circle_concentric_ring" />
+
+                <!-- Ring 1 (Inner) -->
+                <View
+                    android:id="@+id/logo_ring"
+                    android:layout_width="146dp"
+                    android:layout_height="146dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/circle_concentric_ring" />
+
+                <!-- Center Inner Circle and Icon (Orb) -->
+                <LinearLayout
+                    android:id="@+id/logo_inner_circle"
+                    android:layout_width="118dp"
+                    android:layout_height="118dp"
+                    android:layout_gravity="center"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/orb_disconnected"
+                    android:padding="8dp">
+
+                    <ImageView
+                        android:id="@+id/center_icon"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@drawable/ic_rocket" />
+
+                    <ProgressBar
+                        android:id="@+id/center_spinner"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:indeterminate="true"
+                        android:indeterminateTint="@color/primary"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/logo_status_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PASİF"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.25"
+                        android:layout_marginTop="5dp" />
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+            <!-- Connect Button -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_connect"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/btn_rect_inactive"
+                android:text="BAĞLANTIYI BAŞLAT"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
+
+            <!-- Cards Row: IP ADRESİ + VERSİYON only -->
+            <LinearLayout
+                android:id="@+id/cards_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2">
+
+                <!-- Card: IP ADRESİ -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/card_height"
+                    android:layout_weight="1"
+                    android:layout_margin="@dimen/card_margin"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="@dimen/card_padding"
+                    android:background="@drawable/card_bg">
+
+                    <ImageView
+                        android:layout_width="@dimen/card_icon_size"
+                        android:layout_height="@dimen/card_icon_size"
+                        android:src="@drawable/ic_ip"
+                        android:layout_marginEnd="@dimen/card_icon_margin_end"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/card_ip_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="IP ADRESİ"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="@dimen/card_label_size"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/card_ip_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="-"
+                            android:textColor="@color/accent_blue"
+                            android:textSize="@dimen/card_value_size"
+                            android:textStyle="bold"
+                            android:ellipsize="end"
+                            android:singleLine="true" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Card: VERSİYON -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/card_height"
+                    android:layout_weight="1"
+                    android:layout_margin="@dimen/card_margin"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="@dimen/card_padding"
+                    android:background="@drawable/card_bg">
+
+                    <ImageView
+                        android:layout_width="@dimen/card_icon_size"
+                        android:layout_height="@dimen/card_icon_size"
+                        android:src="@drawable/ic_version"
+                        android:layout_marginEnd="@dimen/card_icon_margin_end"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/card_version_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="VERSİYON"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="@dimen/card_label_size"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/card_version_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="v1.0.0"
+                            android:textColor="@color/accent_blue"
+                            android:textSize="@dimen/card_value_size"
+                            android:textStyle="bold"
+                            android:ellipsize="end"
+                            android:singleLine="true" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Bottom Section: pinned at bottom -->
+        <LinearLayout
+            android:id="@+id/bottom_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="12dp">
+
+            <!-- Error Text -->
+            <TextView
+                android:id="@+id/error_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/card_bg"
+                android:padding="8dp"
+                android:gravity="center"
+                android:textColor="@color/error"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Battery Optimization Warning -->
+            <LinearLayout
+                android:id="@+id/btn_background_optimization"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="@dimen/card_padding"
+                android:background="@drawable/card_bg">
+
+                <LinearLayout
+                    android:id="@+id/battery_opt_click_area"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:layout_width="@dimen/card_icon_size"
+                        android:layout_height="@dimen/card_icon_size"
+                        android:src="@drawable/ic_background_opt"
+                        android:layout_marginEnd="@dimen/card_icon_margin_end"/>
+
+                    <TextView
+                        android:id="@+id/battery_opt_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Arka plan kısıtlamalarını devre dışı bırak"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/card_label_size"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/btn_close_battery_opt"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:padding="3dp"
+                    android:src="@drawable/ic_close"
+                    android:tint="#80FFFFFF"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:layout_marginStart="8dp" />
+
+            </LinearLayout>
+
+            <!-- Status Banner -->
+            <LinearLayout
+                android:id="@+id/bottom_info_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/card_bg"
+                android:padding="@dimen/card_padding"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <!-- Right: Bottom Status Dot Frame -->
+                <FrameLayout
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_gravity="center_vertical">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/dot_status_passive" />
+
+                    <View
+                        android:id="@+id/bottom_status_dot"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/dot_status_active"
+                        android:alpha="0" />
+
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/bottom_info_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_light_gray"
+                    android:textSize="@dimen/card_label_size"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</FrameLayout>

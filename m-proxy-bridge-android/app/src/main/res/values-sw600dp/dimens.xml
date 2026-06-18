@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Header — tablet -->
+    <dimen name="header_padding_top">12dp</dimen>
+    <dimen name="header_title_size">32sp</dimen>
+    <dimen name="header_subtitle_size">14sp</dimen>
+    <dimen name="lang_selector_size">32dp</dimen>
+
+    <!-- Uptime — tablet -->
+    <dimen name="uptime_label_size">13sp</dimen>
+    <dimen name="uptime_text_size">56sp</dimen>
+
+    <!-- Logo / Rocket Circle — tablet -->
+    <dimen name="logo_container_size">220dp</dimen>
+    <dimen name="logo_ring_size">180dp</dimen>
+    <dimen name="logo_inner_size">136dp</dimen>
+    <dimen name="logo_icon_size">60dp</dimen>
+    <dimen name="logo_status_size">13sp</dimen>
+    <dimen name="logo_margin_top">8dp</dimen>
+    <dimen name="logo_margin_bottom">12dp</dimen>
+
+    <!-- Connect Button — tablet -->
+    <dimen name="btn_connect_height">64dp</dimen>
+    <dimen name="btn_connect_text_size">17sp</dimen>
+    <dimen name="btn_connect_margin_top">4dp</dimen>
+    <dimen name="btn_connect_margin_bottom">12dp</dimen>
+
+    <!-- Info Cards — tablet -->
+    <dimen name="card_height">88dp</dimen>
+    <dimen name="card_icon_size">28dp</dimen>
+    <dimen name="card_label_size">12sp</dimen>
+    <dimen name="card_value_size">15sp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+    <dimen name="card_margin">5dp</dimen>
+    <dimen name="card_icon_margin_end">12dp</dimen>
+
+    <!-- Global Padding — tablet -->
+    <dimen name="content_horizontal_padding">48dp</dimen>
+    <dimen name="content_bottom_padding">24dp</dimen>
+</resources>
