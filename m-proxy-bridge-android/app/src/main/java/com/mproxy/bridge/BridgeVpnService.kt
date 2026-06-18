@@ -454,12 +454,12 @@ class BridgeVpnService : VpnService() {
                 "servers": [
                   {
                     "tag": "dns-remote",
-                    "address": "tcp://8.8.8.8",
+                    "address": "8.8.8.8",
                     "detour": "bridge-out"
                   },
                   {
                     "tag": "dns-remote-fallback",
-                    "address": "tcp://1.1.1.1",
+                    "address": "1.1.1.1",
                     "detour": "bridge-out"
                   },
                   {
@@ -487,6 +487,7 @@ class BridgeVpnService : VpnService() {
                   "interface_name": "tun0",
                   "inet4_address": "172.20.0.1/30",
                   "inet6_address": "fdfe:dcba:9876::1/126",
+                  "mtu": 1360,
                   "auto_route": true,
                   "strict_route": true,
                   "stack": "gvisor",
