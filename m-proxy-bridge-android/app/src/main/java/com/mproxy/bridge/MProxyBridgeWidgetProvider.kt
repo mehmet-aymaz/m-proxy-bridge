@@ -80,7 +80,7 @@ class MProxyBridgeWidgetProvider : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_CACHE, Context.MODE_PRIVATE)
 
             var ipAddress = "–"
-            var versionName = "v1.0.0"
+            var versionName = "v1.1.0"
 
             // Sürüm bilgisini al
             try {

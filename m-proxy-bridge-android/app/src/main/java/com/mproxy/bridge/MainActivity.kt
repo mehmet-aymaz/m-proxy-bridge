@@ -199,7 +199,7 @@ class MainActivity : AppCompatActivity() {
             val pInfo = packageManager.getPackageInfo(packageName, 0)
             cardVersionValue.text = "v" + pInfo.versionName
         } catch (e: Exception) {
-            cardVersionValue.text = "v1.0.0"
+            cardVersionValue.text = "v1.1.0"
         }
 
         btnConnect.setOnClickListener {
