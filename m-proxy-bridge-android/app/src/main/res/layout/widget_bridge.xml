@@ -133,7 +133,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="v1.1.0"
+                    android:text="v1.1.1"
                     android:textColor="#A855F7"
                     android:textSize="10sp"
                     android:textStyle="bold"
