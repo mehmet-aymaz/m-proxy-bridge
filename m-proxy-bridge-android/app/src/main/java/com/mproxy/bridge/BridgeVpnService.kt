@@ -64,6 +64,11 @@ class BridgeVpnService : VpnService() {
     private var boxThread: Thread? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    private var keepAliveSocket: java.net.DatagramSocket? = null
+    private var keepAliveThread: Thread? = null
+    @Volatile
+    private var isKeepAliveRunning = false
+
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
     @Volatile
@@ -107,10 +112,10 @@ class BridgeVpnService : VpnService() {
             if (wifiLock == null) {
                 val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "MProxyBridge::WifiLock")
+                    wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "MProxyBridge::WifiLock")
                 } else {
                     @Suppress("DEPRECATION")
-                    wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "MProxyBridge::WifiLock")
+                    wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "MProxyBridge::WifiLock")
                 }
                 wifiLock?.acquire()
             }
@@ -136,7 +141,53 @@ class BridgeVpnService : VpnService() {
         }
     }
 
+    private fun startWifiDirectKeepAlive(gatewayIp: String) {
+        stopWifiDirectKeepAlive()
+        isKeepAliveRunning = true
+        keepAliveThread = Thread({
+            try {
+                val socket = java.net.DatagramSocket()
+                protect(socket) // Bypasses the VPN TUN
+                keepAliveSocket = socket
+                val address = java.net.InetAddress.getByName(gatewayIp)
+                val buf = ByteArray(1) { 0 }
+                val packet = java.net.DatagramPacket(buf, buf.size, address, 9999) // Dummy port
+                Log.d(TAG, "Starting Wi-Fi Direct Keep-Alive loop to $gatewayIp:9999")
+                while (isKeepAliveRunning) {
+                    try {
+                        socket.send(packet)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error sending keep-alive packet: ${e.message}")
+                    }
+                    try {
+                        Thread.sleep(300) // Send every 300ms to keep connection hot
+                    } catch (ie: InterruptedException) {
+                        break
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Keep-alive thread error: ${e.message}")
+            }
+        }, "wfd-keep-alive").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun stopWifiDirectKeepAlive() {
+        isKeepAliveRunning = false
+        try {
+            keepAliveSocket?.close()
+        } catch (_: Exception) {}
+        keepAliveSocket = null
+        try {
+            keepAliveThread?.interrupt()
+        } catch (_: Exception) {}
+        keepAliveThread = null
+    }
+
     private fun stopVpnEngineOnly() {
+        stopWifiDirectKeepAlive()
         try {
             platformInterface?.closeTun()
         } catch (e: Throwable) {
@@ -451,6 +502,10 @@ class BridgeVpnService : VpnService() {
                 "timestamp": true
               },
               "dns": {
+                "fakeip": {
+                  "enabled": true,
+                  "inet4_range": "198.18.0.0/15"
+                },
                 "servers": [
                   {
                     "tag": "dns-remote",
@@ -458,9 +513,8 @@ class BridgeVpnService : VpnService() {
                     "detour": "bridge-out"
                   },
                   {
-                    "tag": "dns-remote-fallback",
-                    "address": "tcp://1.1.1.1",
-                    "detour": "bridge-out"
+                    "tag": "dns-fakeip",
+                    "address": "fakeip"
                   },
                   {
                     "tag": "dns-direct",
@@ -475,7 +529,7 @@ class BridgeVpnService : VpnService() {
                   },
                   {
                     "outbound": ["any"],
-                    "server": "dns-remote"
+                    "server": "dns-fakeip"
                   }
                 ],
                 "strategy": "prefer_ipv4"
@@ -501,7 +555,8 @@ class BridgeVpnService : VpnService() {
                   "tag": "bridge-out",
                   "server": "$gatewayIp",
                   "server_port": 10808,
-                  "version": "5"
+                  "version": "5",
+                  "tcp_fast_open": true
                 },
                 {
                   "type": "dns",
@@ -523,10 +578,6 @@ class BridgeVpnService : VpnService() {
                   {
                     "port": [53],
                     "action": "hijack-dns"
-                  },
-                  {
-                    "network": "udp",
-                    "outbound": "block-out"
                   },
                   {
                     "port": [853],
@@ -576,6 +627,7 @@ class BridgeVpnService : VpnService() {
                     
                     broadcastState(STATE_CONNECTED, null)
                     updateNotification("M-Proxy Köprüsü Aktif")
+                    startWifiDirectKeepAlive(gatewayIp)
                     service.start()
                 } catch (e: Throwable) {
                     Log.e(TAG, "Box service error: ${e.message}", e)

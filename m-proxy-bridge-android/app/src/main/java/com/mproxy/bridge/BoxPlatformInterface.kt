@@ -73,31 +73,9 @@ class BoxPlatformInterface(
         }
 
         // Set IPv6 address from options dynamically
-        var addedIPv6 = false
-        try {
-            val inet6Address = options.getInet6Address()
-            while (inet6Address.hasNext()) {
-                val prefix = inet6Address.next()
-                try {
-                    Log.d(TAG, "Adding IPv6 address from options: ${prefix.address()}/${prefix.prefix()}")
-                    builder.addAddress(prefix.address(), prefix.prefix())
-                    addedIPv6 = true
-                } catch (ea: Exception) {
-                    Log.w(TAG, "Failed to add options IPv6 address: ${ea.message}")
-                }
-            }
-            if (!addedIPv6) {
-                try {
-                    Log.d(TAG, "Adding default IPv6 address: fdfe:dcba:9876::1/126")
-                    builder.addAddress("fdfe:dcba:9876::1", 126)
-                    addedIPv6 = true
-                } catch (ex: Exception) {
-                    Log.w(TAG, "Failed to add default IPv6 address: ${ex.message}")
-                }
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "No inet6 address config or error: ${e.message}")
-        }
+        // DISABLED: IPv6 is disabled on the Bridge side to prevent connection timeouts and latency issues 
+        // with apps (like WhatsApp) attempting IPv6 connections before falling back to IPv4.
+        val addedIPv6 = false
 
         // Add DNS servers
         builder.addDnsServer("1.1.1.1")
