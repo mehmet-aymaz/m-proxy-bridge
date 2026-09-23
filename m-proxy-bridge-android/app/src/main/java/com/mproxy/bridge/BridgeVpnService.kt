@@ -207,12 +207,29 @@ class BridgeVpnService : VpnService() {
 
     private fun getGatewayIp(): String {
         try {
+            val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val activeNetwork = cm?.activeNetwork
+            val linkProps = cm?.getLinkProperties(activeNetwork)
+            for (route in linkProps?.routes ?: emptyList()) {
+                if (route.isDefaultRoute && route.gateway is java.net.Inet4Address) {
+                    val ip = route.gateway?.hostAddress
+                    if (!ip.isNullOrEmpty() && ip != "0.0.0.0") {
+                        Log.d(TAG, "Detected gateway IP via LinkProperties: $ip")
+                        return ip
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error detecting gateway via LinkProperties: ${e.message}")
+        }
+
+        try {
             val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             val dhcpInfo = wifiManager?.dhcpInfo
             if (dhcpInfo != null && dhcpInfo.gateway != 0) {
                 val ipInt = dhcpInfo.gateway
                 val ip = "${ipInt and 0xFF}.${(ipInt shr 8) and 0xFF}.${(ipInt shr 16) and 0xFF}.${(ipInt shr 24) and 0xFF}"
-                Log.d(TAG, "Detected gateway IP: $ip")
+                Log.d(TAG, "Detected gateway IP via DhcpInfo: $ip")
                 return ip
             }
         } catch (e: Exception) {
@@ -244,10 +261,8 @@ class BridgeVpnService : VpnService() {
                                     // Schedule 5-minute timeout if not already scheduled
                                     startDisconnectTimeout()
                                     
-                                    if (gatewayIp == "192.168.49.1") {
-                                        mainHandler.removeCallbacks(retryRunnable)
-                                        mainHandler.postDelayed(retryRunnable, 250)
-                                    }
+                                    mainHandler.removeCallbacks(retryRunnable)
+                                    mainHandler.postDelayed(retryRunnable, 500)
                                 } else {
                                     broadcastState(STATE_DISCONNECTED, "Ana telefon bağlantısı kesildi.")
                                     showDisconnectionNotification()
@@ -284,29 +299,36 @@ class BridgeVpnService : VpnService() {
                         Log.d(TAG, "Auto-connect disabled, ignoring network event.")
                         return
                     }
-                    // Small delay so DHCP info is ready before we read the gateway
-                    mainHandler.postDelayed({
-                        if (isTargetHotspot()) {
-                            Log.d(TAG, "Target hotspot confirmed via gateway IP. Auto-starting tunnel.")
-                            cancelDisconnectTimeout()
-                            if (!isActive && !isPrecheckRunning) {
-                                startVpn()
-                            } else if (connectionState == STATE_CONNECTING) {
-                                mainHandler.removeCallbacks(retryRunnable)
-                                mainHandler.post(retryRunnable)
+                    Thread({
+                        try {
+                            Thread.sleep(1200)
+                        } catch (_: Exception) {}
+
+                        val isTarget = isTargetHotspot()
+                        val gw = getGatewayIp()
+
+                        mainHandler.post {
+                            if (isTarget) {
+                                Log.d(TAG, "Target hotspot confirmed ($gw). Auto-starting tunnel.")
+                                cancelDisconnectTimeout()
+                                if (!isActive && !isPrecheckRunning) {
+                                    startVpn()
+                                } else if (connectionState == STATE_CONNECTING) {
+                                    mainHandler.removeCallbacks(retryRunnable)
+                                    mainHandler.post(retryRunnable)
+                                }
+                            } else {
+                                Log.d(TAG, "Connected to a non-target network (gateway: $gw). Starting disconnect timeout.")
+                                if (isActive) {
+                                    stopVpnEngineOnly()
+                                    releaseLocks()
+                                    broadcastState(STATE_CONNECTING, "Hedef hotspot bekleniyor...")
+                                    updateNotification("Hedef hotspot aranıyor...")
+                                }
+                                startDisconnectTimeout()
                             }
-                        } else {
-                            Log.d(TAG, "Connected to a non-target network (gateway != 192.168.49.1). Starting disconnect timeout.")
-                            // Not our hotspot — stop tunnel if running, start timeout
-                            if (isActive) {
-                                stopVpnEngineOnly()
-                                releaseLocks()
-                                broadcastState(STATE_CONNECTING, "Hedef hotspot bekleniyor...")
-                                updateNotification("Hedef hotspot aranıyor...")
-                            }
-                            startDisconnectTimeout()
                         }
-                    }, 1500)
+                    }, "network-available-check").start()
                 }
 
                 override fun onLost(network: Network) {
@@ -361,19 +383,22 @@ class BridgeVpnService : VpnService() {
         return try {
             val gatewayIp = getGatewayIp()
             if (gatewayIp == "192.168.49.1") {
-                true
-            } else {
-                // Fallback: try SSID match if location permission is granted
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-                    val ssid = wifiManager?.connectionInfo?.ssid?.trim('"') ?: ""
-                    val targetSsid = getSharedPreferences("mproxy_bridge_prefs", Context.MODE_PRIVATE)
-                        .getString("target_ssid", "DIRECT-") ?: "DIRECT-"
-                    ssid.startsWith(targetSsid)
-                } else {
-                    false
+                return true
+            }
+            if (checkSocksReachable(gatewayIp)) {
+                Log.d(TAG, "isTargetHotspot: SOCKS5 reachable on $gatewayIp:10808 -> Target confirmed!")
+                return true
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                val ssid = wifiManager?.connectionInfo?.ssid?.trim('"') ?: ""
+                val targetSsid = getSharedPreferences("mproxy_bridge_prefs", Context.MODE_PRIVATE)
+                    .getString("target_ssid", "DIRECT-") ?: "DIRECT-"
+                if (ssid.isNotEmpty() && (ssid.startsWith(targetSsid) || ssid.contains("MProxy", ignoreCase = true) || ssid.contains("DIRECT", ignoreCase = true))) {
+                    return true
                 }
             }
+            false
         } catch (e: Exception) {
             Log.e(TAG, "Error checking target hotspot: ${e.message}")
             false
@@ -455,10 +480,8 @@ class BridgeVpnService : VpnService() {
                             // Schedule 5-minute timeout if not already scheduled
                             startDisconnectTimeout()
                             
-                            if (gatewayIp == "192.168.49.1") {
-                                mainHandler.removeCallbacks(retryRunnable)
-                                mainHandler.postDelayed(retryRunnable, 250)
-                            }
+                            mainHandler.removeCallbacks(retryRunnable)
+                            mainHandler.postDelayed(retryRunnable, 500)
                         } else {
                             broadcastState(STATE_DISCONNECTED, "Ana telefonun M-Proxy hotspot'u bulunamadı. Lütfen Wi-Fi Direct bağlantısını kontrol edin.")
                             stopVpn()
@@ -643,10 +666,8 @@ class BridgeVpnService : VpnService() {
                                 releaseLocks()
                                 startDisconnectTimeout()
                                 
-                                if (currentGatewayIp == "192.168.49.1") {
-                                    mainHandler.removeCallbacks(retryRunnable)
-                                    mainHandler.postDelayed(retryRunnable, 250)
-                                }
+                                mainHandler.removeCallbacks(retryRunnable)
+                                mainHandler.postDelayed(retryRunnable, 500)
                             } else {
                                 broadcastState(STATE_DISCONNECTED, "Köprü motor hatası: ${e.message}")
                                 stopVpn()
@@ -673,10 +694,8 @@ class BridgeVpnService : VpnService() {
                 releaseLocks()
                 startDisconnectTimeout()
                 
-                if (currentGatewayIp == "192.168.49.1") {
-                    mainHandler.removeCallbacks(retryRunnable)
-                    mainHandler.postDelayed(retryRunnable, 250)
-                }
+                mainHandler.removeCallbacks(retryRunnable)
+                mainHandler.postDelayed(retryRunnable, 500)
             } else {
                 broadcastState(STATE_DISCONNECTED, "VPN başlatma hatası: ${e.message}")
                 stopVpn()

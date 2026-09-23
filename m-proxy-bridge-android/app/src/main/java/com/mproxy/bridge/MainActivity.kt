@@ -8,6 +8,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.net.VpnService
+import android.net.ConnectivityManager
+import android.net.RouteInfo
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
@@ -754,6 +756,20 @@ class MainActivity : AppCompatActivity() {
     // ─── Network Helpers ──────────────────────────────────────────────────────
 
     private fun getGatewayIp(): String {
+        try {
+            val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val activeNetwork = cm?.activeNetwork
+            val linkProps = cm?.getLinkProperties(activeNetwork)
+            for (route in linkProps?.routes ?: emptyList<RouteInfo>()) {
+                if (route.isDefaultRoute && route.gateway is java.net.Inet4Address) {
+                    val ip = route.gateway?.hostAddress
+                    if (!ip.isNullOrEmpty() && ip != "0.0.0.0") {
+                        return ip
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
         try {
             val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             val dhcpInfo = wifiManager?.dhcpInfo
