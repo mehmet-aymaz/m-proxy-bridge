@@ -11,8 +11,17 @@ android {
         applicationId = "com.mproxy.bridge"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.2"
+        versionCode = 5
+        versionName = "1.1.3"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("/home/mehmetaymaz/Projeler/M-Portal/M-Proxy VPN/m-proxy-android/mproxy-release.jks")
+            storePassword = "mproxy2024secure"
+            keyAlias = "mproxy-key"
+            keyPassword = "mproxy2024secure"
+        }
     }
 
     buildTypes {
@@ -28,6 +37,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")

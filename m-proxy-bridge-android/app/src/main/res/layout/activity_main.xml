@@ -332,6 +332,7 @@
 
                 <!-- Card: VERSİYON -->
                 <LinearLayout
+                    android:id="@+id/card_version_container"
                     android:layout_width="0dp"
                     android:layout_height="@dimen/card_height"
                     android:layout_weight="1"
@@ -339,7 +340,9 @@
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:padding="@dimen/card_padding"
-                    android:background="@drawable/card_bg">
+                    android:background="@drawable/card_bg"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <ImageView
                         android:layout_width="@dimen/card_icon_size"
