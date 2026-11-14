@@ -261,6 +261,15 @@ class BoxPlatformInterface(
 
     private fun updateDefaultInterface(linkProperties: LinkProperties) {
         val name = linkProperties.interfaceName ?: return
+        if (name.contains("tun", ignoreCase = true) ||
+            name.contains("tap", ignoreCase = true) ||
+            name.contains("dummy", ignoreCase = true) ||
+            name.contains("lo", ignoreCase = true)
+        ) {
+            Log.d(TAG, "Ignoring VPN/virtual interface as default: $name, falling back to physical interface")
+            notifyFallbackDefaultInterface()
+            return
+        }
         var index = 0
         try {
             val netint = java.net.NetworkInterface.getByName(name)

@@ -11,13 +11,15 @@ android {
         applicationId = "com.mproxy.bridge"
         minSdk = 24
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.1.3"
+        versionCode = 6
+        versionName = "1.1.4"
     }
 
     signingConfigs {
         create("release") {
-            storeFile = file("/home/mehmetaymaz/Projeler/M-Portal/M-Proxy VPN/m-proxy-android/mproxy-release.jks")
+            val localKeystore = file("mproxy-release.jks")
+            val fallbackKeystore = file("/mnt/depo/Arşiv/Projeler/M-Portal/M-Proxy VPN/m-proxy-android/mproxy-release.jks")
+            storeFile = if (localKeystore.exists()) localKeystore else fallbackKeystore
             storePassword = "mproxy2024secure"
             keyAlias = "mproxy-key"
             keyPassword = "mproxy2024secure"

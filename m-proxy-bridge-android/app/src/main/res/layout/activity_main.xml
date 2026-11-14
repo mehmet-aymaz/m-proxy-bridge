@@ -382,6 +382,65 @@
 
             </LinearLayout>
 
+            <!-- Card: PROXY ADRESİ (Full width / Seçenek D) -->
+            <LinearLayout
+                android:id="@+id/card_proxy_container"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/card_height"
+                android:layout_margin="@dimen/card_margin"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="@dimen/card_padding"
+                android:background="@drawable/card_bg"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <ImageView
+                    android:layout_width="@dimen/card_icon_size"
+                    android:layout_height="@dimen/card_icon_size"
+                    android:src="@drawable/ic_network"
+                    android:layout_marginEnd="@dimen/card_icon_margin_end"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/card_proxy_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PROXY ADRESİ"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/card_label_size"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/card_proxy_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="–"
+                        android:textColor="@color/primary"
+                        android:textSize="@dimen/card_value_size"
+                        android:textStyle="bold"
+                        android:ellipsize="end"
+                        android:singleLine="true" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_copy"
+                    android:alpha="0.6"
+                    android:layout_marginStart="8dp" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
         <!-- Bottom Section: pinned at bottom -->

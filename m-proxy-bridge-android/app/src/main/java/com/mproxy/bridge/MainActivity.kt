@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.ClipboardManager
+import android.content.ClipData
 import android.net.Uri
 import android.net.VpnService
 import android.net.ConnectivityManager
@@ -66,6 +68,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var logoStatusText: TextView
     private lateinit var cardIpValue: TextView
     private lateinit var cardVersionValue: TextView
+    private lateinit var cardProxyContainer: View
+    private lateinit var cardProxyValue: TextView
     private lateinit var btnBackgroundOptimization: View
     private lateinit var bottomInfoText: TextView
     private lateinit var bottomStatusDot: View
@@ -75,6 +79,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var uptimeLabel: TextView
     private lateinit var cardIpLabel: TextView
     private lateinit var cardVersionLabel: TextView
+    private lateinit var cardProxyLabel: TextView
     private lateinit var batteryOptLabel: TextView
 
     private var currentLang = "TR"
@@ -88,6 +93,7 @@ class MainActivity : AppCompatActivity() {
     private var vpnActive = false
     private var vpnStartTimestamp = 0L
     private var vpnLastIpAddress: String? = null
+    private var pendingInstallApkFile: File? = null
 
     private val pingHandler = Handler(Looper.getMainLooper())
     private val pingRunnable = object : Runnable {
@@ -198,6 +204,8 @@ class MainActivity : AppCompatActivity() {
         logoStatusText          = findViewById(R.id.logo_status_text)
         cardIpValue             = findViewById(R.id.card_ip_value)
         cardVersionValue        = findViewById(R.id.card_version_value)
+        cardProxyContainer      = findViewById(R.id.card_proxy_container)
+        cardProxyValue          = findViewById(R.id.card_proxy_value)
         btnBackgroundOptimization = findViewById(R.id.btn_background_optimization)
         bottomInfoText          = findViewById(R.id.bottom_info_text)
         bottomStatusDot         = findViewById(R.id.bottom_status_dot)
@@ -205,14 +213,31 @@ class MainActivity : AppCompatActivity() {
         uptimeLabel             = findViewById(R.id.uptime_label)
         cardIpLabel             = findViewById(R.id.card_ip_label)
         cardVersionLabel        = findViewById(R.id.card_version_label)
+        cardProxyLabel          = findViewById(R.id.card_proxy_label)
         batteryOptLabel         = findViewById(R.id.battery_opt_label)
+
+        // Proxy card click -> copy ONLY IP (exclude port)
+        cardProxyContainer.setOnClickListener {
+            val gatewayIp = getGatewayIp()
+            if (gatewayIp.isNotEmpty() && gatewayIp != "0.0.0.0") {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Proxy IP", gatewayIp)
+                clipboard.setPrimaryClip(clip)
+                val msg = if (currentLang == "TR") {
+                    "Proxy IP kopyalandı: $gatewayIp"
+                } else {
+                    "Proxy IP copied: $gatewayIp"
+                }
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            }
+        }
 
         // App version
         try {
             val pInfo = packageManager.getPackageInfo(packageName, 0)
             cardVersionValue.text = "v" + pInfo.versionName
         } catch (e: Exception) {
-            cardVersionValue.text = "v1.1.2"
+            cardVersionValue.text = "v1.1.4"
         }
 
         val cardVersionContainer = findViewById<View>(R.id.card_version_container)
@@ -325,6 +350,15 @@ class MainActivity : AppCompatActivity() {
         val shouldAuto = prefs.getBoolean("should_auto_connect", true)
         if (shouldAuto && !vpnActive) {
             prepareAndStartVpn()
+        }
+
+        // Check if an APK install is pending user granting UNKNOWN_APP_SOURCES permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val pending = pendingInstallApkFile
+            if (pending != null && pending.exists() && packageManager.canRequestPackageInstalls()) {
+                pendingInstallApkFile = null
+                installApk(pending)
+            }
         }
     }
 
@@ -457,6 +491,7 @@ class MainActivity : AppCompatActivity() {
             uptimeLabel.text      = "AKTİF ÇALIŞMA SÜRESİ"
             cardIpLabel.text      = "IP ADRESİ"
             cardVersionLabel.text = "VERSİYON"
+            cardProxyLabel.text   = "PROXY ADRESİ"
             batteryOptLabel.text  = "Arka plan kısıtlamalarını devre dışı bırak"
 
             when (BridgeVpnService.connectionState) {
@@ -478,6 +513,7 @@ class MainActivity : AppCompatActivity() {
             uptimeLabel.text      = "ACTIVE UPTIME"
             cardIpLabel.text      = "IP ADDRESS"
             cardVersionLabel.text = "VERSION"
+            cardProxyLabel.text   = "PROXY ADDRESS"
             batteryOptLabel.text  = "Disable background restrictions"
 
             when (BridgeVpnService.connectionState) {
@@ -542,6 +578,11 @@ class MainActivity : AppCompatActivity() {
                 // IP Address value turns cyan when connected
                 cardIpValue.setTextColor(getColor(R.color.primary))
 
+                // Proxy Address value (gateway:10808) turns cyan when connected
+                val connectedGateway = getGatewayIp()
+                cardProxyValue.text = "$connectedGateway:10808"
+                cardProxyValue.setTextColor(getColor(R.color.primary))
+
                 errorText.visibility = View.GONE
 
                 mainHandler.removeCallbacks(uptimeRunnable)
@@ -590,6 +631,11 @@ class MainActivity : AppCompatActivity() {
                 cardIpValue.text = "–"
                 cardIpValue.setTextColor(android.graphics.Color.parseColor("#60FFFFFF"))
 
+                // Proxy Address shows detected gateway:10808
+                val connectingGateway = getGatewayIp()
+                cardProxyValue.text = "$connectingGateway:10808"
+                cardProxyValue.setTextColor(android.graphics.Color.parseColor("#A600E5FF"))
+
                 errorText.visibility = View.GONE
 
                 mainHandler.removeCallbacks(uptimeRunnable)
@@ -629,6 +675,11 @@ class MainActivity : AppCompatActivity() {
                 // IP Address value is en-dash and dimmed when disconnected
                 cardIpValue.text = "–"
                 cardIpValue.setTextColor(android.graphics.Color.parseColor("#60FFFFFF"))
+
+                // Proxy Address shows detected gateway:10808 (dimmed when disconnected)
+                val disconnectedGateway = getGatewayIp()
+                cardProxyValue.text = "$disconnectedGateway:10808"
+                cardProxyValue.setTextColor(android.graphics.Color.parseColor("#60FFFFFF"))
 
                 uptimeText.text = "00:00:00"
 
@@ -941,9 +992,9 @@ class MainActivity : AppCompatActivity() {
     fun checkAppUpdate(silent: Boolean) {
         val currentVersion = try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
-            packageInfo.versionName ?: "1.1.2"
+            packageInfo.versionName ?: "1.1.4"
         } catch (e: Exception) {
-            "1.1.2"
+            "1.1.4"
         }
 
         if (!silent) {
@@ -1322,32 +1373,45 @@ class MainActivity : AppCompatActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!packageManager.canRequestPackageInstalls()) {
+                pendingInstallApkFile = file
                 val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
                     data = Uri.parse("package:$packageName")
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
                 startActivity(settingsIntent)
                 val msg = if (currentLang == "TR") {
-                    "Lütfen bilinmeyen uygulamaları yükleme iznini verin ve tekrar deneyin."
+                    "Lütfen bilinmeyen uygulamaları yükleme iznini verin."
                 } else {
-                    "Please allow installing unknown apps and try again."
+                    "Please allow installing unknown apps."
                 }
                 Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
                 return
             }
         }
 
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val authority = "$packageName.fileprovider"
+                val apkUri = FileProvider.getUriForFile(this@MainActivity, authority, file)
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val authority = "$packageName.fileprovider"
-            val apkUri = FileProvider.getUriForFile(this, authority, file)
-            intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
-        } else {
-            intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
+                // Explicitly grant read URI permission to package installer components
+                val resInfoList = packageManager.queryIntentActivities(this, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+                for (resolveInfo in resInfoList) {
+                    grantUriPermission(resolveInfo.activityInfo.packageName, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            } else {
+                setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
+            }
         }
 
-        startActivity(intent)
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start install intent: ${e.message}", e)
+            val msg = if (currentLang == "TR") "Kurulum başlatılamadı: ${e.message}" else "Installation failed: ${e.message}"
+            Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+        }
     }
 }

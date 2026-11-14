@@ -375,28 +375,15 @@ class BridgeVpnService : VpnService() {
     }
 
     /**
-     * Returns true when the currently connected Wi-Fi network is the target M-Proxy hotspot.
-     * Primary check: gateway IP == 192.168.49.1 (Wi-Fi Direct default gateway).
-     * Secondary check (Android 8+, requires ACCESS_FINE_LOCATION at runtime): SSID/BSSID match.
+     * Returns true when the device is connected to any valid Wi-Fi / Hotspot network with a detected gateway IP.
+     * Supports M-Proxy Wi-Fi Direct as well as any other VPN / hotspot tethering sharing network.
      */
     private fun isTargetHotspot(): Boolean {
         return try {
             val gatewayIp = getGatewayIp()
-            if (gatewayIp == "192.168.49.1") {
+            if (gatewayIp.isNotEmpty() && gatewayIp != "0.0.0.0") {
+                Log.d(TAG, "isTargetHotspot: Valid gateway detected ($gatewayIp)")
                 return true
-            }
-            if (checkSocksReachable(gatewayIp)) {
-                Log.d(TAG, "isTargetHotspot: SOCKS5 reachable on $gatewayIp:10808 -> Target confirmed!")
-                return true
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-                val ssid = wifiManager?.connectionInfo?.ssid?.trim('"') ?: ""
-                val targetSsid = getSharedPreferences("mproxy_bridge_prefs", Context.MODE_PRIVATE)
-                    .getString("target_ssid", "DIRECT-") ?: "DIRECT-"
-                if (ssid.isNotEmpty() && (ssid.startsWith(targetSsid) || ssid.contains("MProxy", ignoreCase = true) || ssid.contains("DIRECT", ignoreCase = true))) {
-                    return true
-                }
             }
             false
         } catch (e: Exception) {
@@ -472,8 +459,8 @@ class BridgeVpnService : VpnService() {
                         val prefs = getSharedPreferences("mproxy_bridge_prefs", Context.MODE_PRIVATE)
                         val shouldAuto = prefs.getBoolean("should_auto_connect", true)
                         if (shouldAuto) {
-                            broadcastState(STATE_CONNECTING, "M-Proxy hotspot aranıyor...")
-                            updateNotification("Hotspot aranıyor... Wi-Fi bağlantınızı kontrol edin.")
+                            broadcastState(STATE_CONNECTING, "Proxy sunucusu aranıyor ($gatewayIp:10808)...")
+                            updateNotification("Proxy aranıyor ($gatewayIp:10808)... Wi-Fi kontrol edin.")
                             
                             // Release locks while waiting
                             releaseLocks()
@@ -483,7 +470,7 @@ class BridgeVpnService : VpnService() {
                             mainHandler.removeCallbacks(retryRunnable)
                             mainHandler.postDelayed(retryRunnable, 500)
                         } else {
-                            broadcastState(STATE_DISCONNECTED, "Ana telefonun M-Proxy hotspot'u bulunamadı. Lütfen Wi-Fi Direct bağlantısını kontrol edin.")
+                            broadcastState(STATE_DISCONNECTED, "Proxy sunucusuna erişilemedi ($gatewayIp:10808). Lütfen Wi-Fi ve proxy paylaşımını kontrol edin.")
                             stopVpn()
                         }
                     }
@@ -547,11 +534,7 @@ class BridgeVpnService : VpnService() {
                 ],
                 "rules": [
                   {
-                    "outbound": ["direct"],
-                    "server": "dns-direct"
-                  },
-                  {
-                    "outbound": ["any"],
+                    "inbound": ["tun-in"],
                     "server": "dns-fakeip"
                   }
                 ],
@@ -578,8 +561,7 @@ class BridgeVpnService : VpnService() {
                   "tag": "bridge-out",
                   "server": "$gatewayIp",
                   "server_port": 10808,
-                  "version": "5",
-                  "tcp_fast_open": true
+                  "version": "5"
                 },
                 {
                   "type": "dns",
@@ -605,6 +587,17 @@ class BridgeVpnService : VpnService() {
                   {
                     "port": [853],
                     "outbound": "block-out"
+                  },
+                  {
+                    "port": [443],
+                    "network": "udp",
+                    "outbound": "block-out"
+                  },
+                  {
+                    "ip_cidr": [
+                      "198.18.0.0/15"
+                    ],
+                    "outbound": "bridge-out"
                   },
                   {
                     "ip_cidr": [

@@ -28,3 +28,7 @@ local.properties
 # System files
 .DS_Store
 Thumbs.db
+
+# Keystore
+*.jks
+*.keystore

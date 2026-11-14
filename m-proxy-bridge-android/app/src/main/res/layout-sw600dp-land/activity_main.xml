@@ -398,6 +398,68 @@
 
         </LinearLayout>
 
+        <!-- RIGHT SIDE: Proxy Card (placed below cards_grid / Seçenek D) -->
+        <LinearLayout
+            android:id="@+id/card_proxy_container"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="8dp"
+            android:background="@drawable/card_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            app:layout_constraintStart_toEndOf="@id/column_guideline"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/cards_grid">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_network"
+                android:layout_marginEnd="8dp"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/card_proxy_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PROXY ADRESİ"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/card_proxy_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="–"
+                    android:textColor="@color/primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:ellipsize="end"
+                    android:singleLine="true" />
+
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_copy"
+                android:alpha="0.6"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
+
         <!-- RIGHT SIDE: Bottom Section (placed below Cards) -->
         <LinearLayout
             android:id="@+id/bottom_section"
@@ -409,7 +471,7 @@
             android:layout_marginTop="8dp"
             app:layout_constraintStart_toEndOf="@id/column_guideline"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/cards_grid">
+            app:layout_constraintTop_toBottomOf="@id/card_proxy_container">
 
             <!-- Error Text -->
             <TextView
