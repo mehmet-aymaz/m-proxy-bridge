@@ -93,6 +93,7 @@ class MainActivity : AppCompatActivity() {
     private var vpnActive = false
     private var vpnStartTimestamp = 0L
     private var vpnLastIpAddress: String? = null
+    private var vpnDetectedPort = BridgeVpnService.detectedPort
     private var pendingInstallApkFile: File? = null
 
     private val pingHandler = Handler(Looper.getMainLooper())
@@ -102,11 +103,12 @@ class MainActivity : AppCompatActivity() {
             if (state == BridgeVpnService.STATE_CONNECTED || state == BridgeVpnService.STATE_CONNECTING) {
                 Thread({
                     val gatewayIp = getGatewayIp()
+                    val targetPort = if (vpnDetectedPort > 0) vpnDetectedPort else BridgeVpnService.detectedPort
                     val startTime = System.currentTimeMillis()
                     val socket = java.net.Socket()
                     var success = false
                     try {
-                        socket.connect(java.net.InetSocketAddress(gatewayIp, 10808), 2000)
+                        socket.connect(java.net.InetSocketAddress(gatewayIp, targetPort), 2000)
                         success = true
                     } catch (e: Exception) {
                         Log.e(TAG, "Ping connect failed: ${e.message}")
@@ -145,6 +147,10 @@ class MainActivity : AppCompatActivity() {
                 val ipExtra = intent.getStringExtra("lastIpAddress")
                 if (!ipExtra.isNullOrEmpty()) {
                     vpnLastIpAddress = ipExtra
+                }
+                val portExtra = intent.getIntExtra("detectedPort", BridgeVpnService.detectedPort)
+                if (portExtra > 0) {
+                    vpnDetectedPort = portExtra
                 }
                 updateUi(state, error)
             }
@@ -237,7 +243,7 @@ class MainActivity : AppCompatActivity() {
             val pInfo = packageManager.getPackageInfo(packageName, 0)
             cardVersionValue.text = "v" + pInfo.versionName
         } catch (e: Exception) {
-            cardVersionValue.text = "v1.1.4"
+            cardVersionValue.text = "v1.1.5"
         }
 
         val cardVersionContainer = findViewById<View>(R.id.card_version_container)
@@ -332,11 +338,13 @@ class MainActivity : AppCompatActivity() {
             vpnState = BridgeVpnService.connectionState
             vpnStartTimestamp = BridgeVpnService.startTimestamp
             vpnLastIpAddress = BridgeVpnService.lastIpAddress
+            vpnDetectedPort = BridgeVpnService.detectedPort
         } else {
             vpnActive = false
             vpnState = BridgeVpnService.STATE_DISCONNECTED
             vpnStartTimestamp = 0L
             vpnLastIpAddress = null
+            vpnDetectedPort = BridgeVpnService.detectedPort
         }
 
         val prefs = getSharedPreferences("mproxy_bridge_prefs", Context.MODE_PRIVATE)
@@ -578,9 +586,10 @@ class MainActivity : AppCompatActivity() {
                 // IP Address value turns cyan when connected
                 cardIpValue.setTextColor(getColor(R.color.primary))
 
-                // Proxy Address value (gateway:10808) turns cyan when connected
+                // Proxy Address value (gateway:port) turns cyan when connected
+                val activePort = if (vpnDetectedPort > 0) vpnDetectedPort else BridgeVpnService.detectedPort
                 val connectedGateway = getGatewayIp()
-                cardProxyValue.text = "$connectedGateway:10808"
+                cardProxyValue.text = "$connectedGateway:$activePort"
                 cardProxyValue.setTextColor(getColor(R.color.primary))
 
                 errorText.visibility = View.GONE
@@ -631,9 +640,10 @@ class MainActivity : AppCompatActivity() {
                 cardIpValue.text = "–"
                 cardIpValue.setTextColor(android.graphics.Color.parseColor("#60FFFFFF"))
 
-                // Proxy Address shows detected gateway:10808
+                // Proxy Address shows detected gateway:port
+                val activePort = if (vpnDetectedPort > 0) vpnDetectedPort else BridgeVpnService.detectedPort
                 val connectingGateway = getGatewayIp()
-                cardProxyValue.text = "$connectingGateway:10808"
+                cardProxyValue.text = "$connectingGateway:$activePort"
                 cardProxyValue.setTextColor(android.graphics.Color.parseColor("#A600E5FF"))
 
                 errorText.visibility = View.GONE
@@ -676,9 +686,10 @@ class MainActivity : AppCompatActivity() {
                 cardIpValue.text = "–"
                 cardIpValue.setTextColor(android.graphics.Color.parseColor("#60FFFFFF"))
 
-                // Proxy Address shows detected gateway:10808 (dimmed when disconnected)
+                // Proxy Address shows detected gateway:port (dimmed when disconnected)
+                val activePort = if (vpnDetectedPort > 0) vpnDetectedPort else BridgeVpnService.detectedPort
                 val disconnectedGateway = getGatewayIp()
-                cardProxyValue.text = "$disconnectedGateway:10808"
+                cardProxyValue.text = "$disconnectedGateway:$activePort"
                 cardProxyValue.setTextColor(android.graphics.Color.parseColor("#60FFFFFF"))
 
                 uptimeText.text = "00:00:00"
@@ -864,9 +875,10 @@ class MainActivity : AppCompatActivity() {
             var conn: HttpURLConnection? = null
             try {
                 val gatewayIp = getGatewayIp()
+                val targetPort = if (vpnDetectedPort > 0) vpnDetectedPort else BridgeVpnService.detectedPort
                 val proxy = java.net.Proxy(
                     java.net.Proxy.Type.SOCKS,
-                    java.net.InetSocketAddress(gatewayIp, 10808)
+                    java.net.InetSocketAddress(gatewayIp, targetPort)
                 )
                 val url = URL("https://api.ipify.org")
                 conn = url.openConnection(proxy) as HttpURLConnection
@@ -992,9 +1004,9 @@ class MainActivity : AppCompatActivity() {
     fun checkAppUpdate(silent: Boolean) {
         val currentVersion = try {
             val packageInfo = packageManager.getPackageInfo(packageName, 0)
-            packageInfo.versionName ?: "1.1.4"
+            packageInfo.versionName ?: "1.1.5"
         } catch (e: Exception) {
-            "1.1.4"
+            "1.1.5"
         }
 
         if (!silent) {

@@ -54,6 +54,11 @@ class BridgeVpnService : VpnService() {
 
         @Volatile
         var lastIpAddress: String? = null
+
+        @Volatile
+        var detectedPort = 10808
+
+        val CANDIDATE_PORTS = intArrayOf(10808, 7071, 1080, 10809, 8080, 7890)
     }
 
     @Volatile
@@ -244,16 +249,16 @@ class BridgeVpnService : VpnService() {
             if (isActive) {
                 Thread({
                     val gatewayIp = getGatewayIp()
-                    val reachable = checkSocksReachable(gatewayIp)
+                    val reachable = checkSocksReachable(gatewayIp, detectedPort)
                     if (!reachable && isActive) {
-                        Log.w(TAG, "SOCKS5 bridge at $gatewayIp:10808 is no longer reachable. Reconnecting...")
+                        Log.w(TAG, "SOCKS5 bridge at $gatewayIp:$detectedPort is no longer reachable. Reconnecting...")
                         mainHandler.post {
                             if (isActive) {
                                 val prefs = getSharedPreferences("mproxy_bridge_prefs", Context.MODE_PRIVATE)
                                 val shouldAuto = prefs.getBoolean("should_auto_connect", true)
                                 if (shouldAuto) {
-                                    broadcastState(STATE_CONNECTING, "Ana telefon bağlantısı kesildi. Yeniden aranıyor...")
-                                    updateNotification("Hotspot aranıyor... Wi-Fi bağlantınızı kontrol edin.")
+                                    broadcastState(STATE_CONNECTING, "Bağlantı kesildi. Yeniden aranıyor...")
+                                    updateNotification("Proxy aranıyor... Wi-Fi bağlantınızı kontrol edin.")
                                     stopVpnEngineOnly()
                                     
                                     // Release locks while waiting
@@ -264,7 +269,7 @@ class BridgeVpnService : VpnService() {
                                     mainHandler.removeCallbacks(retryRunnable)
                                     mainHandler.postDelayed(retryRunnable, 500)
                                 } else {
-                                    broadcastState(STATE_DISCONNECTED, "Ana telefon bağlantısı kesildi.")
+                                    broadcastState(STATE_DISCONNECTED, "Proxy bağlantısı kesildi.")
                                     showDisconnectionNotification()
                                     stopVpn()
                                 }
@@ -452,15 +457,15 @@ class BridgeVpnService : VpnService() {
         Thread({
             try {
                 val gatewayIp = getGatewayIp()
-                val reachable = checkSocksReachable(gatewayIp)
-                if (!reachable) {
-                    Log.e(TAG, "SOCKS5 bridge at $gatewayIp:10808 is unreachable")
+                val activePort = detectActiveProxyPort(gatewayIp)
+                if (activePort == null) {
+                    Log.e(TAG, "No active proxy found on $gatewayIp (checked ${CANDIDATE_PORTS.joinToString()})")
                     mainHandler.post {
                         val prefs = getSharedPreferences("mproxy_bridge_prefs", Context.MODE_PRIVATE)
                         val shouldAuto = prefs.getBoolean("should_auto_connect", true)
                         if (shouldAuto) {
-                            broadcastState(STATE_CONNECTING, "Proxy sunucusu aranıyor ($gatewayIp:10808)...")
-                            updateNotification("Proxy aranıyor ($gatewayIp:10808)... Wi-Fi kontrol edin.")
+                            broadcastState(STATE_CONNECTING, "Proxy sunucusu aranıyor ($gatewayIp)...")
+                            updateNotification("Proxy aranıyor ($gatewayIp)... Wi-Fi kontrol edin.")
                             
                             // Release locks while waiting
                             releaseLocks()
@@ -470,15 +475,18 @@ class BridgeVpnService : VpnService() {
                             mainHandler.removeCallbacks(retryRunnable)
                             mainHandler.postDelayed(retryRunnable, 500)
                         } else {
-                            broadcastState(STATE_DISCONNECTED, "Proxy sunucusuna erişilemedi ($gatewayIp:10808). Lütfen Wi-Fi ve proxy paylaşımını kontrol edin.")
+                            broadcastState(STATE_DISCONNECTED, "Proxy sunucusuna erişilemedi ($gatewayIp). Lütfen Wi-Fi ve proxy paylaşımını kontrol edin.")
                             stopVpn()
                         }
                     }
                     return@Thread
                 }
 
+                detectedPort = activePort
+                Log.i(TAG, "Active proxy confirmed at $gatewayIp:$activePort. Launching VPN engine...")
+
                 mainHandler.post {
-                    runVpnEngine(gatewayIp)
+                    runVpnEngine(gatewayIp, activePort)
                 }
             } finally {
                 isPrecheckRunning = false
@@ -486,7 +494,7 @@ class BridgeVpnService : VpnService() {
         }, "vpn-prestart-check").start()
     }
 
-    private fun runVpnEngine(gatewayIp: String) {
+    private fun runVpnEngine(gatewayIp: String, proxyPort: Int = detectedPort) {
         try {
             // Step 2: Setup libbox
             if (!libboxReady) {
@@ -560,7 +568,7 @@ class BridgeVpnService : VpnService() {
                   "type": "socks",
                   "tag": "bridge-out",
                   "server": "$gatewayIp",
-                  "server_port": 10808,
+                  "server_port": $proxyPort,
                   "version": "5"
                 },
                 {
@@ -642,7 +650,7 @@ class BridgeVpnService : VpnService() {
                     acquireLocks()
                     
                     broadcastState(STATE_CONNECTED, null)
-                    updateNotification("M-Proxy Köprüsü Aktif")
+                    updateNotification("Proxy Köprüsü Aktif ($gatewayIp:$proxyPort)")
                     startWifiDirectKeepAlive(gatewayIp)
                     service.start()
                 } catch (e: Throwable) {
@@ -696,11 +704,34 @@ class BridgeVpnService : VpnService() {
         }
     }
 
-    private fun checkSocksReachable(ip: String): Boolean {
+    private fun detectActiveProxyPort(ip: String): Int? {
+        val candidatePorts = mutableListOf<Int>()
+        candidatePorts.add(detectedPort)
+        for (p in CANDIDATE_PORTS) {
+            if (!candidatePorts.contains(p)) {
+                candidatePorts.add(p)
+            }
+        }
+        for (port in candidatePorts) {
+            var socket: Socket? = null
+            try {
+                socket = Socket()
+                socket.connect(InetSocketAddress(ip, port), 800)
+                Log.i(TAG, "detectActiveProxyPort: Found reachable proxy on $ip:$port")
+                return port
+            } catch (_: Exception) {
+            } finally {
+                try { socket?.close() } catch (_: Exception) {}
+            }
+        }
+        return null
+    }
+
+    private fun checkSocksReachable(ip: String, port: Int = detectedPort): Boolean {
         var socket: Socket? = null
         return try {
             socket = Socket()
-            socket.connect(InetSocketAddress(ip, 10808), 2000)
+            socket.connect(InetSocketAddress(ip, port), 2000)
             true
         } catch (e: Exception) {
             false
@@ -791,6 +822,7 @@ class BridgeVpnService : VpnService() {
                 putExtra("active", state == STATE_CONNECTED || state == STATE_CONNECTING)
                 putExtra("startTimestamp", startTimestamp)
                 putExtra("lastIpAddress", lastIpAddress)
+                putExtra("detectedPort", detectedPort)
                 error?.let { putExtra("error", it) }
             }
             sendBroadcast(intent)
